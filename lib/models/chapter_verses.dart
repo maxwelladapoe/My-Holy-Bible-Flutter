@@ -8,9 +8,10 @@ class ChapterVerses {
   final String verse_text;
   var is_highlighted;
   var highlighted_color;
+  bool is_selected= false;
 
   ChapterVerses(this.id, this.book_id, this.chapter_number, this.verse_number,
-      this.verse_text, this.is_highlighted, this.highlighted_color);
+      this.verse_text, [this.is_highlighted, this.highlighted_color]);
   factory ChapterVerses.fromRawJson(String str) =>
       ChapterVerses.fromJson(json.decode(str));
 
@@ -34,4 +35,5 @@ class ChapterVerses {
         "is_highlighted": is_highlighted,
         "highlighted_color": highlighted_color
       };
+
 }

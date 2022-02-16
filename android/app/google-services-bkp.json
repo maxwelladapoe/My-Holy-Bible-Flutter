@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1006566816864",
+    "project_id": "my-holy-bible-f307d",
+    "storage_bucket": "my-holy-bible-f307d.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1006566816864:android:7d79bd384278346293d705",
+        "android_client_info": {
+          "package_name": "com.wearepoe.holybible"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1006566816864-d8a9s6uo5k57vdndk95a7pv6pp1tnq3n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBqZ1xoNioEXUlh7gZTUONbHN2Lje2e6cg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1006566816864-d8a9s6uo5k57vdndk95a7pv6pp1tnq3n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

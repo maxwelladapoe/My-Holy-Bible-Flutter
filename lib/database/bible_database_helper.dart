@@ -56,6 +56,16 @@ class BibleDatabaseHelper {
     return chapterVerses.map((e) => ChapterVerses.fromJson(e)).toList();
   }
 
+  highlightVerse(ChapterVerses verse) async{
+    var  bibleNames =['amp','kjv','msg','nkjv','niv'];
+    await _db?.transaction((txn) async {
+      bibleNames.forEach((name) {
+        txn.rawUpdate("UPDATE ${name}_bible_verses SET is_highlighted =? where id=?",[1,verse.id]);
+      });
+    });
+  }
+
+
   Future<List<Note>> getAllNotes() async {
     List<Map> notes = [];
 

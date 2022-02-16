@@ -23,7 +23,10 @@ class BooksPage extends StatelessWidget {
             " " +
             (numChapters == 1 ? 'Chapter' : 'Chapters');
 
-        var bookId = allBooks[index].book_id;
+        var bookId = books[index].book_id;
+
+
+
         return Column(
           children: <Widget>[
             ListTile(
@@ -88,7 +91,9 @@ class BooksPage extends StatelessWidget {
               length: 2,
               child: Scaffold(
                 appBar: AppBar(
-                  title: const Text('My Holy Bible'),
+                  title:  Text('My Holy Bible', style: GoogleFonts.ebGaramond(
+                    fontSize: 20.0,
+                  )),
                   actions: [BibleSelectDropDown()],
                   bottom: TabBar(
                     onTap: (index) {

@@ -21,6 +21,7 @@ class ChaptersPage extends StatelessWidget {
               ListTile(
                 enabled: true,
                 onTap: () {
+
                   Get.to(() => VersesPage(
                       bookId, bookName, (index + 1), totalNumberOfChapters));
 
@@ -45,7 +46,9 @@ class ChaptersPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Chapters"),
+        title: Text("Chapters",style: GoogleFonts.ebGaramond(
+          fontSize: 20.0,
+        )),
         actions: [BibleSelectDropDown()],
       ),
       body: chaptersBuilder(),

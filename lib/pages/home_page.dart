@@ -31,7 +31,7 @@ class HomePage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.only(top: 20),
               margin: const EdgeInsets.only(top: 20),
-              child: const VerseOfDay(),
+              child:  VerseOfDay(),
             ),
             Container(
               margin: const EdgeInsets.only(top: 40),

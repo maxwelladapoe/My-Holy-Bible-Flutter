@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:my_holy_bible/components/bible_select_dropdown.dart';
 import 'package:my_holy_bible/controllers/bible_select_controller.dart';
 import 'package:my_holy_bible/database/bible_database_helper.dart';
+import 'package:share_plus/share_plus.dart';
 
 class VersesPage extends StatefulWidget {
   int bookId;
@@ -13,34 +16,50 @@ class VersesPage extends StatefulWidget {
   int totalNumberOfChapters;
 
   VersesPage(this.bookId, this.bookName, this.chapterNumber,
-      this.totalNumberOfChapters, {Key? key}) : super(key: key);
+      this.totalNumberOfChapters,
+      {Key? key})
+      : super(key: key);
 
   @override
-  State<VersesPage> createState() => _VersesPageState();
+  State<VersesPage> createState() =>
+      VersesPageState(bookId, bookName, chapterNumber, totalNumberOfChapters);
 }
 
-class _VersesPageState extends State<VersesPage> {
+enum TtsState { playing, stopped, paused, continued }
+
+class VersesPageState extends State<VersesPage> {
+  int bookId;
+  String bookName;
+  int chapterNumber;
+  int totalNumberOfChapters;
+  final FlutterTts flutterTts = FlutterTts();
+
+  VersesPageState(this.bookId, this.bookName, this.chapterNumber,
+      this.totalNumberOfChapters);
+
   final dbHelper = BibleDatabaseHelper();
-
   String bibleName = 'niv';
-
-  int hitBottomCount =0;
+  int hitBottomCount = 0;
   ScrollController scrollController = ScrollController();
+  bool isSelectMode = false;
+  var selectedVerses = [];
+  var allChapterVerses = [];
 
+  TtsState ttsState = TtsState.stopped;
 
+  get isPlaying => ttsState == TtsState.playing;
 
-  void _scrollListener() {
-    if (scrollController.position.extentAfter < 500) {
-      setState(() {
-        //items.addAll(List.generate(42, (index) => 'Inserted $index'));
-      });
-    }
-  }
+  get isStopped => ttsState == TtsState.stopped;
 
+  get isPaused => ttsState == TtsState.paused;
+
+  get isContinued => ttsState == TtsState.continued;
 
   @override
   void initState() {
     super.initState();
+    flutterTts.setLanguage('en');
+    flutterTts.setSpeechRate(0.4);
     scrollController = ScrollController()..addListener(_scrollListener);
   }
 
@@ -50,39 +69,163 @@ class _VersesPageState extends State<VersesPage> {
     super.dispose();
   }
 
+  void _scrollListener() {
+    if (scrollController.position.extentAfter < 500) {
+      setState(() {
+        //items.addAll(List.generate(42, (index) => 'Inserted $index'));
+      });
+    }
+  }
+
   bool _handleScrollNotification(ScrollNotification notification) {
     if (notification is ScrollEndNotification) {
-
       if (scrollController.position.extentAfter == 0) {
-
         hitBottomCount++;
-        if( hitBottomCount >=2){
+        if (hitBottomCount >= 2) {
           print("load more");
         }
-
-      }else if(scrollController.position.extentBefore ==0){
+      } else if (scrollController.position.extentBefore == 0) {
         print("top");
-      }else{
+      } else {
         hitBottomCount = 0;
       }
       print(hitBottomCount);
-
-
     }
     return false;
   }
 
+  addVerseToSelectedVerses(verse) {
+    setState(() {
+      if (selectedVerses.contains(verse.id)) {
+        selectedVerses.remove(verse.id);
+      } else {
+        selectedVerses.add(verse.id);
+      }
+
+      if (selectedVerses.length == 0) {
+        isSelectMode = false;
+      }
+    });
+  }
+
+  String getSelectedVersesAsString([textToSpeech = false]) {
+    var verses = [];
+    selectedVerses.sort();
+    selectedVerses.forEach((verseID) {
+      var verse =
+          allChapterVerses.firstWhere((element) => element.id == verseID);
+      verses.add(verse);
+    });
+    var firstVerse = verses.first;
+    var lastVerse = verses.last;
+    var stringTitle = "";
+    var stringBody = "";
+    if (verses.length > 1) {
+      if (!textToSpeech) {
+        stringTitle =
+            "${bookName} ${chapterNumber}:${firstVerse.verse_number}-${lastVerse.verse_number}"
+                .trim();
+      } else {
+        stringTitle =
+            "${bookName} chapter ${chapterNumber} verse ${firstVerse.verse_number} to ${lastVerse.verse_number}."
+                .trim();
+      }
+    } else {
+      if (!textToSpeech) {
+        stringTitle =
+            "${bookName} ${chapterNumber}:${firstVerse.verse_number}".trim();
+      } else {
+        stringTitle =
+            "${bookName} chapter ${chapterNumber} verse ${firstVerse.verse_number}."
+                .trim();
+      }
+    }
+    verses.forEach((element) {
+      stringBody += " ${element.verse_text}";
+    });
+    stringBody = stringBody.trim();
+
+    return "$stringTitle\n$stringBody";
+  }
+
+  bookmarkSelectedVerses() {}
+
+  buildActions() {
+    var actions = [
+      const BibleSelectDropDown(),
+      PopupMenuButton(
+        icon: const Icon(
+            MdiIcons.dotsVertical), //don't specify icon if you want 3 dot menu
+        color: Colors.blue,
+        itemBuilder: (context) => [
+          const PopupMenuItem<int>(
+            value: 0,
+            child: Text(
+              "Setting",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+        onSelected: (item) => {print(item)},
+      ),
+    ];
+
+    if (isSelectMode) {
+      actions = [
+        IconButton(
+          onPressed: () {
+            Clipboard.setData(
+                    new ClipboardData(text: getSelectedVersesAsString()))
+                .then((_) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Verse copied to clipboard")));
+            });
+          },
+          icon: Icon(MdiIcons.contentCopy),
+          iconSize: 20,
+        ),
+        IconButton(
+          onPressed: () {
+            Share.share(getSelectedVersesAsString());
+          },
+          icon: Icon(MdiIcons.shareVariant),
+          iconSize: 20,
+        ),
+        IconButton(
+          onPressed: () {},
+          icon: Icon(MdiIcons.bookmarkPlus),
+          iconSize: 20,
+        ),
+        IconButton(
+          onPressed: () {
+            bookmarkSelectedVerses();
+          },
+          icon: Icon(MdiIcons.bookOpenBlankVariant),
+          iconSize: 20,
+        ),
+        IconButton(
+          onPressed: () {
+            flutterTts.speak(getSelectedVersesAsString(true));
+          },
+          icon: Icon(MdiIcons.textToSpeech),
+          iconSize: 20,
+        )
+      ];
+    }
+
+    return actions;
+  }
 
   Widget versesBuilder() {
-    BibleSelectController controller = Get.find();
-
     return GetX<BibleSelectController>(builder: (controller) {
       return FutureBuilder(
           future: dbHelper.getChapterVersesForBook(
-              controller.selectedBible.value, widget.bookId, widget.chapterNumber),
+              controller.selectedBible.value,
+              widget.bookId,
+              widget.chapterNumber),
           builder: (BuildContext context, AsyncSnapshot snapshot) {
             if (snapshot.hasData) {
-              var allChapterVerses = snapshot.data;
+              allChapterVerses = snapshot.data;
               return NotificationListener<ScrollNotification>(
                 onNotification: _handleScrollNotification,
                 child: ListView.builder(
@@ -90,33 +233,60 @@ class _VersesPageState extends State<VersesPage> {
                   padding: const EdgeInsets.only(top: 5),
                   itemCount: allChapterVerses.length,
                   itemBuilder: (BuildContext context, int index) {
-                    var verseText = allChapterVerses[index].verse_text;
-                    var verseNumber = allChapterVerses[index].verse_number;
+                    var verse = allChapterVerses[index];
+                    var verseText = verse.verse_text;
+                    var verseNumber = verse.verse_number;
+
                     return Column(
+                      key: Key(verse.id.toString()),
                       children: <Widget>[
-                        Container(
-                          padding: const EdgeInsets.only(
-                              top: 3, left: 20, right: 20, bottom: 3),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.only(right: 3.0),
-                                child: Text('$verseNumber',
-                                    style: GoogleFonts.ebGaramond(
-                                        fontSize: 18.0,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.red)),
-                              ),
-                              Expanded(
-                                  child: Text(
-                                '$verseText',
-                                style: GoogleFonts.ebGaramond(
-                                  fontSize: 18.0,
+                        GestureDetector(
+                          onLongPress: () {
+                            //initiate select mode and add first item
+                            if (!isSelectMode) {
+                              setState(() {
+                                isSelectMode = true;
+                                addVerseToSelectedVerses(verse);
+                              });
+                            }
+                          },
+                          onTap: () {
+                            if (isSelectMode) {
+                              addVerseToSelectedVerses(verse);
+                              setState(() {
+                                verse.is_selected = true;
+                              });
+                            } else {
+                              print("hello");
+                            }
+                          },
+                          child: Container(
+                            color: (selectedVerses.contains(verse.id))
+                                ? Colors.greenAccent
+                                : Colors.transparent,
+                            padding: const EdgeInsets.only(
+                                top: 3, left: 20, right: 20, bottom: 3),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.only(right: 3.0),
+                                  child: Text('$verseNumber',
+                                      style: GoogleFonts.ebGaramond(
+                                          fontSize: 18.0,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.red)),
                                 ),
-                                textAlign: TextAlign.justify,
-                              ))
-                            ],
+                                Expanded(
+                                    child: Text(
+                                  '$verseText',
+                                  style: GoogleFonts.ebGaramond(
+                                    fontSize: 18.0,
+                                  ),
+                                  textAlign: TextAlign.justify,
+                                ))
+                              ],
+                            ),
                           ),
                         ),
                         const Divider(
@@ -137,25 +307,11 @@ class _VersesPageState extends State<VersesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.bookName + " " + widget.chapterNumber.toString()),
-        actions: [
-          const BibleSelectDropDown(),
-          PopupMenuButton(
-            icon: const Icon(MdiIcons
-                .dotsVertical), //don't specify icon if you want 3 dot menu
-            color: Colors.blue,
-            itemBuilder: (context) => [
-              const PopupMenuItem<int>(
-                value: 0,
-                child: Text(
-                  "Setting",
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-            onSelected: (item) => {print(item)},
-          ),
-        ],
+        title: Text(widget.bookName + " " + widget.chapterNumber.toString(),
+            style: GoogleFonts.ebGaramond(
+              fontSize: 20.0,
+            )),
+        actions: buildActions(),
       ),
       body: versesBuilder(),
     );
