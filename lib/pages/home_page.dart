@@ -5,12 +5,15 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import 'package:my_holy_bible/components/verse_of_day.dart';
 import 'package:my_holy_bible/pages/books_page.dart';
 import 'package:my_holy_bible/pages/notes/notes_page.dart';
+import 'package:timeago/timeago.dart' as timeago;
+import '../controllers/bible_select_controller.dart';
 
 class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: const Text("My Holy Bible"),
       ),
       body: Container(
@@ -24,10 +27,19 @@ class HomePage extends StatelessWidget {
                 fontSize: 40,
               ),
             ),
-            Text(
-              "Its been 3 days since your last visit",
-              style: GoogleFonts.ebGaramond(fontSize: 18),
-            ),
+            GetX <BibleSelectController> (builder: (controller){
+              if(controller.currentActiveDateTime.value.isNotEmpty){
+
+                return Text(
+                  "Its been ${timeago.format(DateTime.parse(controller.previousActiveDateTime.value))} since your last visit",
+                  style: GoogleFonts.ebGaramond(fontSize: 18),
+                );
+              }else{
+                return Container();
+              }
+
+            })
+           ,
             Container(
               padding: const EdgeInsets.only(top: 20),
               margin: const EdgeInsets.only(top: 20),

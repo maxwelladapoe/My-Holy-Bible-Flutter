@@ -7,6 +7,8 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import 'package:my_holy_bible/components/bible_select_dropdown.dart';
 import 'package:my_holy_bible/controllers/bible_select_controller.dart';
 import 'package:my_holy_bible/database/bible_database_helper.dart';
+import 'package:my_holy_bible/models/verses.dart';
+import 'package:my_holy_bible/pages/cross_references_page.dart';
 import 'package:share_plus/share_plus.dart';
 
 class VersesPage extends StatefulWidget {
@@ -148,7 +150,31 @@ class VersesPageState extends State<VersesPage> {
     return "$stringTitle\n$stringBody";
   }
 
-  bookmarkSelectedVerses() {}
+  bookmarkSelectedVerses() {
+    selectedVerses.sort();
+    selectedVerses.forEach((verseID) {
+     dbHelper.highlightVerse(verseID);
+      allChapterVerses.firstWhere((element) => element.id == verseID).is_highlighted = 1;
+
+    });
+    setState(() {
+      isSelectMode = false;
+      selectedVerses.clear();
+    });
+  }
+
+
+  unBookmarkSelectedVerses() {
+    selectedVerses.sort();
+    selectedVerses.forEach((verseID) {
+      dbHelper.unHighlightVerse(verseID);
+      allChapterVerses.firstWhere((element) => element.id == verseID).is_highlighted = 0;
+    });
+    setState(() {
+      isSelectMode = false;
+      selectedVerses.clear();
+    });
+  }
 
   buildActions() {
     var actions = [
@@ -171,6 +197,29 @@ class VersesPageState extends State<VersesPage> {
     ];
 
     if (isSelectMode) {
+      Widget showBookMark() {
+        //check if the selected verse is highlighted
+        Verse oneVerse = allChapterVerses
+            .firstWhere((element) => element.id == selectedVerses[0]);
+        if (selectedVerses.length == 1 && oneVerse.is_highlighted ==1) {
+          return IconButton(
+            onPressed: () {
+              unBookmarkSelectedVerses();
+            },
+            icon: Icon(MdiIcons.bookmarkMinus),
+            iconSize: 20,
+          );
+        } else {
+          return IconButton(
+            onPressed: () {
+              bookmarkSelectedVerses();
+            },
+            icon: Icon(MdiIcons.bookmarkPlus),
+            iconSize: 20,
+          );
+        }
+      }
+
       actions = [
         IconButton(
           onPressed: () {
@@ -191,18 +240,21 @@ class VersesPageState extends State<VersesPage> {
           icon: Icon(MdiIcons.shareVariant),
           iconSize: 20,
         ),
-        IconButton(
-          onPressed: () {},
-          icon: Icon(MdiIcons.bookmarkPlus),
-          iconSize: 20,
-        ),
+        showBookMark(),
+        selectedVerses.length ==1 ?
         IconButton(
           onPressed: () {
-            bookmarkSelectedVerses();
+            Verse verseToCross = allChapterVerses
+                .firstWhere((element) => element.id == selectedVerses[0]);
+            Get.to(()=>CrossReferencesPage(verseToCross, bookName));
+            setState(() {
+              isSelectMode = false;
+              selectedVerses.clear();
+            });
           },
-          icon: Icon(MdiIcons.bookOpenBlankVariant),
+          icon: Icon(MdiIcons.bookOpenPageVariant),
           iconSize: 20,
-        ),
+        ):Container(),
         IconButton(
           onPressed: () {
             flutterTts.speak(getSelectedVersesAsString(true));
@@ -256,8 +308,6 @@ class VersesPageState extends State<VersesPage> {
                               setState(() {
                                 verse.is_selected = true;
                               });
-                            } else {
-                              print("hello");
                             }
                           },
                           child: Container(
@@ -265,7 +315,7 @@ class VersesPageState extends State<VersesPage> {
                                 ? Colors.greenAccent
                                 : Colors.transparent,
                             padding: const EdgeInsets.only(
-                                top: 3, left: 20, right: 20, bottom: 3),
+                                top: 3, left: 10, right: 10, bottom: 3),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -284,7 +334,10 @@ class VersesPageState extends State<VersesPage> {
                                     fontSize: 18.0,
                                   ),
                                   textAlign: TextAlign.justify,
-                                ))
+                                )),
+                                verse.is_highlighted ==1 ? Container(
+                                  child: Icon(MdiIcons.bookmark, color: Colors.red, size: 22.0),
+                                ): Container()
                               ],
                             ),
                           ),

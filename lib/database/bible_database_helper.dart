@@ -1,7 +1,8 @@
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:my_holy_bible/models/bible_book.dart';
-import 'package:my_holy_bible/models/chapter_verses.dart';
+import 'package:my_holy_bible/models/cross_reference_verses.dart';
+import 'package:my_holy_bible/models/verses.dart';
 import 'package:my_holy_bible/models/note.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -44,7 +45,7 @@ class BibleDatabaseHelper {
     return books.map((e) => BibleBook.fromJson(e)).toList();
   }
 
-  Future<List<ChapterVerses>> getChapterVersesForBook(
+  Future<List<Verse>> getChapterVersesForBook(
       bibleName, bookId, chapterNumber) async {
     List<Map> chapterVerses = [];
 
@@ -53,18 +54,43 @@ class BibleDatabaseHelper {
           where: 'chapter_number = ? and book_id=?',
           whereArgs: [chapterNumber, bookId]);
     });
-    return chapterVerses.map((e) => ChapterVerses.fromJson(e)).toList();
+    return chapterVerses.map((e) => Verse.fromJson(e)).toList();
   }
 
-  highlightVerse(ChapterVerses verse) async{
-    var  bibleNames =['amp','kjv','msg','nkjv','niv'];
+  highlightVerse(int verseID) async {
+    var bibleNames = ['amp', 'kjv', 'msg', 'nkjv', 'niv'];
     await _db?.transaction((txn) async {
       bibleNames.forEach((name) {
-        txn.rawUpdate("UPDATE ${name}_bible_verses SET is_highlighted =? where id=?",[1,verse.id]);
+        txn.rawUpdate(
+            "UPDATE ${name}_bible_verses SET is_highlighted =? where id=?",
+            [1, verseID]);
       });
     });
   }
 
+
+
+  unHighlightVerse(int verseID) async {
+    var bibleNames = ['amp', 'kjv', 'msg', 'nkjv', 'niv'];
+    await _db?.transaction((txn) async {
+      bibleNames.forEach((name) {
+        txn.rawUpdate(
+            "UPDATE ${name}_bible_verses SET is_highlighted =? where id=?",
+            [0, verseID]);
+      });
+    });
+  }
+
+  Future<List<CrossReferenceVerse>> getAllCrossReferenceVerses(verseID) async {
+    List<Map> crossReferenceVerses = [];
+
+    await _db?.transaction((txn) async {
+      crossReferenceVerses = await txn.rawQuery(
+          "select cr.sv as start_verse, cr.ev as end_verse, cr.rank,bb.book_name, bv.* from cross_references cr, kjv_bible_verses bv, bible_books bb where cr.verse_id =? and bv.id >=cr.sv and bv.id <= cr.ev and bb.book_id=bv.book_id order by cr.rank asc"
+      ,[verseID]);
+    });
+    return crossReferenceVerses.map((e) => CrossReferenceVerse.fromJson(e)).toList();
+  }
 
   Future<List<Note>> getAllNotes() async {
     List<Map> notes = [];
@@ -75,7 +101,6 @@ class BibleDatabaseHelper {
 
     return notes.map((e) => Note.fromJson(e)).toList();
   }
-
 
   Future<Note> insertNote(Note note) async {
     await _db?.transaction((txn) async {

@@ -23,31 +23,50 @@ class VerseOfDay extends StatelessWidget {
                       ),
                       Obx((){
 
-                        var verseOfTheDay= bibleSelectController.memoryVerse[0];
+                        var isLoading = bibleSelectController.isLoadingVerseOfDay;
 
-                        return    Container(
-                          padding: const EdgeInsets.only(top: 20),
-                          child: Column(
-                            children: [
-                              Container(
-                                  margin: const EdgeInsets.only(bottom: 10),
-                                  child: Text(
-                                    (verseOfTheDay.verse_text.isNotEmpty ?verseOfTheDay.verse_text:
-                                    "Do not let your hearts be troubled. You believe in God; believe also in me."),
-                                    textAlign: TextAlign.center,
-                                    style: GoogleFonts.ebGaramond(
-                                      fontSize: 18,
-                                    ),
-                                  )),
-                              Text(
-                                verseOfTheDay.title.isNotEmpty ? verseOfTheDay.title: "John 14:1",
-                                style: GoogleFonts.ebGaramond(
-                                    fontStyle: FontStyle.italic,
-                                    fontWeight: FontWeight.bold),
-                              )
-                            ],
-                          ),
-                        );
+                        if(isLoading.value){
+                          print(isLoading);
+                          return  Container(
+                            padding: EdgeInsets.all(20),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircularProgressIndicator(),
+                                Padding(padding: EdgeInsets.only(top: 10),
+                                child:  Text("loading the verse of the day"),)
+
+                              ],
+                            ) ,
+
+                          );
+                        }else{
+                          var verseOfTheDay= bibleSelectController.memoryVerse[0];
+                          return    Container(
+                            padding: const EdgeInsets.only(top: 20),
+                            child: Column(
+                              children: [
+                                Container(
+                                    margin: const EdgeInsets.only(bottom: 10),
+                                    child: Text(
+                                      verseOfTheDay.verse_text,
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.ebGaramond(
+                                        fontSize: 18,
+                                      ),
+                                    )),
+                                Text(
+                                  verseOfTheDay.title,
+                                  style: GoogleFonts.ebGaramond(
+                                      fontStyle: FontStyle.italic,
+                                      fontWeight: FontWeight.bold),
+                                )
+                              ],
+                            ),
+                          );
+                        }
+
+
                       })
 
                     ],
